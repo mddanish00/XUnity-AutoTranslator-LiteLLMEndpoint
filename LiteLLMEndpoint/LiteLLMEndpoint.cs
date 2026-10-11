@@ -75,5 +75,21 @@ namespace LiteLLM
             Configuration.LoadConfiguration(configFolderPath);
         }
 
+        private void StartProcess()
+        {
+
+        }
+
+        public void Dispose()
+        {
+            this.isDisposing = true;
+            if (this.process != null)
+            {
+                this.process.Kill();
+                this.process.Dispose();
+                this.process = null;
+            }
+        }
+
     }
 }
