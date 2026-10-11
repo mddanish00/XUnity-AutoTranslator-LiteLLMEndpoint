@@ -23,6 +23,10 @@ namespace LiteLLM
         private string ConfigPath { get; set; }
         private string ApiKey { get; set; }
         private string ModelName { get; set; }
+        private float ModelTemperature { get; set; }
+        private float ModelTopK { get; set; }
+        private float ModelFrequencyPenalty { get; set; }
+        private float ModelPresencePenalty { get; set; }
         private bool LogServerMessages { get; set; }
 
         public override void Initialize(IInitializationContext context)
@@ -34,6 +38,10 @@ namespace LiteLLM
             this.ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
             this.ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
             this.ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
+            this.ModelTemperature = context.GetOrCreateSetting("LiteLLM", "Temperature", 0.2f);
+            this.ModelTopK = context.GetOrCreateSetting("LiteLLM", "TopK", 0.9f);
+            this.ModelFrequencyPenalty = context.GetOrCreateSetting("LiteLLM", "FrequencyPenalty", 0f);
+            this.ModelPresencePenalty = context.GetOrCreateSetting("LiteLLM", "PresencePenalty", 0f);
             this.LogServerMessages = context.GetOrCreateSetting("LiteLLM", "LogServerMessages", false);
 
             // Remove artificial delays
@@ -61,6 +69,11 @@ namespace LiteLLM
             {
                 this.StartProcess();
             }
+
+            // Load configuration
+            var configFolderPath = $"{Configuration.CalculateConfigFolder(context.TranslatorDirectory)}/LiteLLM";
+            Configuration.LoadConfiguration(configFolderPath);
         }
 
     }
+}
