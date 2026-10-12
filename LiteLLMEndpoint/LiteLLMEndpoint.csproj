@@ -57,4 +57,25 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+		<PackageReference Include="YamlDotNet" Version="5.0.0" />
+	</ItemGroup>
+
+  <ItemGroup>
+		<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.45" />
+	</ItemGroup>
+
+  <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <InputAssemblies Include="$(OutputPath)YamlDotNet.dll" />
+    </ItemGroup>
+    
+    <ILRepack
+        Parallel="true"
+        Internalize="true"
+        InputAssemblies="@(InputAssemblies)"
+        TargetKind="SameAsPrimaryAssembly"
+        OutputFile="$(TargetDir)$(TargetName)$(TargetExt)" />
+  </Target>
+
 </Project>
