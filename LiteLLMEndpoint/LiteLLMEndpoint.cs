@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -6,6 +7,7 @@ using SimpleJSON;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints.Http;
 using XUnity.AutoTranslator.Plugin.Core.Web;
+using XUnity.Common.Logging;
 
 namespace LiteLLM
 {
@@ -23,7 +25,7 @@ namespace LiteLLM
 
         private string ServerPort { get; set; }
         private string BinaryPath { get; set; }
-        private Array AddArguments { get; set; }
+        private List<string> ExtraArguments { get; set; }
         private string ConfigPath { get; set; }
         private string ApiKey { get; set; }
         private string ModelName { get; set; }
@@ -38,7 +40,7 @@ namespace LiteLLM
             // Config
             this.ServerPort = context.GetOrCreateSetting("LiteLLM", "ServerPort", "4000");
             this.BinaryPath = context.GetOrCreateSetting("LiteLLM", "BinaryPath", "");
-            this.AddArguments = context.GetOrCreateSetting("LiteLLM", "AddArguments", new string[] { });
+            this.ExtraArguments = new List<string>(context.GetOrCreateSetting("LiteLLM", "ExtraArguments", new string[] { }));
             this.ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
             this.ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
             this.ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
@@ -108,7 +110,39 @@ namespace LiteLLM
 
         private void StartProcess()
         {
+            if (this.process == null || this.process.HasExited)
+            {
+                XuaLogger.AutoTranslator.Info($"Running LiteLLM:\n\tBinaryPath: {this.BinaryPath}");
 
+                List<string> argumentsList = new List<string>()
+                {
+                    "--port",
+                    this.ServerPort,
+                    "--config",
+                    this.ConfigPath
+                };
+                argumentsList.AddRange(this.ExtraArguments);
+
+                this.process = new Process();
+                this.process.StartInfo = new ProcessStartInfo()
+                {
+                    FileName = this.BinaryPath,
+                    Arguments = string.Join(" ", argumentsList.ToArray()),
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    CreateNoWindow = true,
+                };
+
+                this.process.OutputDataReceived += this.ServerDataReceivedEventHandler;
+                this.process.ErrorDataReceived += this.ServerDataReceivedEventHandler;
+
+                this.process.Start();
+                this.process.BeginErrorReadLine();
+                this.process.BeginOutputReadLine();
+                this.isStarted = true;
+            }
         }
 
         public void Dispose()
@@ -120,6 +154,55 @@ namespace LiteLLM
                 this.process.Dispose();
                 this.process = null;
             }
+        }
+
+        void ServerDataReceivedEventHandler(object sender, DataReceivedEventArgs args)
+        {
+            if (this.LogServerMessages)
+            {
+                XuaLogger.AutoTranslator.Info(args.Data);
+            }
+
+            if (!this.isReady && args.Data.Contains("INFO"))
+            {
+                this.isReady = true;
+                XuaLogger.AutoTranslator.Info("Application startup complete.");
+            }
+        }
+
+        IEnumerator ITranslateEndpoint.Translate(ITranslationContext context)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var iterator = base.Translate(context);
+
+            while (iterator.MoveNext()) yield return iterator.Current;
+
+            var elapsed = stopwatch.Elapsed.TotalSeconds;
+
+            if (this.LogServerMessages)
+            {
+                XuaLogger.AutoTranslator.Info($"Translate complete {elapsed}s");
+            }
+        }
+
+        public override IEnumerator OnBeforeTranslate(IHttpTranslationContext context)
+        {
+            if (this.isStarted && this.process.HasExited)
+            {
+                this.isStarted = false;
+                this.isReady = false;
+
+                XuaLogger.AutoTranslator.Warn($"Translator server process exited unexpectedly [status {process.ExitCode}]");
+            }
+
+            if (!this.isStarted && !this.isDisposing)
+            {
+                XuaLogger.AutoTranslator.Warn($"Translator server process not running. Starting...");
+                this.StartProcess();
+            }
+
+            while (!this.isReady) yield return null;
         }
 
     }
