@@ -33,6 +33,7 @@ namespace LiteLLM
         private float ModelTopK { get; set; }
         private float ModelFrequencyPenalty { get; set; }
         private float ModelPresencePenalty { get; set; }
+        private bool UseExternalServer { get; set; }
         private bool LogServerMessages { get; set; }
 
         public override void Initialize(IInitializationContext context)
@@ -40,7 +41,7 @@ namespace LiteLLM
             // Config
             this.ServerPort = context.GetOrCreateSetting("LiteLLM", "ServerPort", "4000");
             this.BinaryPath = context.GetOrCreateSetting("LiteLLM", "BinaryPath", "");
-            this.ExtraArguments = new List<string>(context.GetOrCreateSetting("LiteLLM", "ExtraArguments", new string[] { }));
+            this.ExtraArguments = context.GetOrCreateSetting("LiteLLM", "ExtraArguments", new List<string>());
             this.ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
             this.ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
             this.ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
@@ -48,13 +49,14 @@ namespace LiteLLM
             this.ModelTopK = context.GetOrCreateSetting("LiteLLM", "TopK", 0.9f);
             this.ModelFrequencyPenalty = context.GetOrCreateSetting("LiteLLM", "FrequencyPenalty", 0f);
             this.ModelPresencePenalty = context.GetOrCreateSetting("LiteLLM", "PresencePenalty", 0f);
+            this.UseExternalServer = context.GetOrCreateSetting("LiteLLM", "UseExternalServer", false); 
             this.LogServerMessages = context.GetOrCreateSetting("LiteLLM", "LogServerMessages", false);
 
             // Remove artificial delays
             context.SetTranslationDelay(0.1f);
             context.DisableSpamChecks();
 
-            if (string.IsNullOrEmpty(this.BinaryPath) || string.IsNullOrEmpty(this.ConfigPath))
+            if ((string.IsNullOrEmpty(this.BinaryPath) || string.IsNullOrEmpty(this.ConfigPath)) && !this.UseExternalServer)
             {
                 throw new Exception($"LiteLLMEndpoint: BinaryPath or ConfigPath is not set. Please configure them in the settings.");
             }
@@ -71,7 +73,7 @@ namespace LiteLLM
 
             var configuredEndpoint = context.GetOrCreateSetting<string>("Service", "Endpoint");
             // Only start the process if this endpoint is the configured one
-            if (configuredEndpoint == this.Id)
+            if (configuredEndpoint == this.Id && !this.UseExternalServer)
             {
                 this.StartProcess();
             }
@@ -98,7 +100,7 @@ namespace LiteLLM
             }
 
             var requestData = Factory.GetRequestData(rawText);
-            var request = new XUnityWebRequest("POST", $"http://127.0.0.1:{this.ServerPort}/", requestData);
+            var request = new XUnityWebRequest("POST", $"http://localhost:{this.ServerPort}/v1/chat/completions", requestData);
             request.Headers[HttpRequestHeader.Authorization] = $"Bearer {this.ApiKey}";
             request.Headers[HttpRequestHeader.ContentType] = "application/json";
 
