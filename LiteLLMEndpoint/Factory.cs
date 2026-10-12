@@ -60,7 +60,10 @@ namespace LiteLLM
             foreach (var line in glossaryLines)
             {
                 if (raw.Contains(line.Raw))
-                    prompt.Append($"- {line.Raw}: {line.Result}\n");
+                    if (line.Context != string.Empty)
+                        prompt.Append($"- {line.Raw}: {line.Result} (Context: {line.Context})\n");
+                    else
+                        prompt.Append($"- {line.Raw}: {line.Result}\n");
             }
 
             return prompt.ToString();
