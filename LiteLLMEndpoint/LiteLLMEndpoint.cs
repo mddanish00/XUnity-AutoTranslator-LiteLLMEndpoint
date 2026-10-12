@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
+using SimpleJSON;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints.Http;
+using XUnity.AutoTranslator.Plugin.Core.Web;
 
 namespace LiteLLM
 {
@@ -73,6 +77,33 @@ namespace LiteLLM
             // Load configuration
             var configFolderPath = $"{Configuration.CalculateConfigFolder(context.TranslatorDirectory)}/LiteLLM";
             Configuration.LoadConfiguration(configFolderPath);
+            Configuration.LoadModelConfig(this.ModelName,
+            new KeyValuePair<string, object>("temperature", this.ModelTemperature),
+            new KeyValuePair<string, object>("top_p", this.ModelTopK),
+            new KeyValuePair<string, object>("frequency_penalty", this.ModelFrequencyPenalty),
+            new KeyValuePair<string, object>("presence_penalty", this.ModelPresencePenalty));
+        }
+
+        public override void OnCreateRequest(IHttpRequestCreationContext context)
+        {
+            var requestData = Factory.GetRequestData(context.UntranslatedText);
+            var request = new XUnityWebRequest("POST", $"http://127.0.0.1:{this.ServerPort}/", requestData);
+            request.Headers[HttpRequestHeader.Authorization] = $"Bearer {this.ApiKey}";
+            request.Headers[HttpRequestHeader.ContentType] = "application/json";
+
+            context.Complete(request);
+        }
+
+        public override void OnExtractTranslation(IHttpTranslationExtractionContext context)
+        {
+            var data = context.Response.Data;
+
+            var jsonResponse = JSON.Parse(data);
+            var result = jsonResponse["choices"]?[0]?["message"]?["content"]?.ToString() ?? string.Empty;
+            result = Factory.ValidateAndCleanupTranslation(context.UntranslatedText, result);
+
+            if (MaxTranslationsPerRequest == 1)
+                context.Complete(result);
         }
 
         private void StartProcess()

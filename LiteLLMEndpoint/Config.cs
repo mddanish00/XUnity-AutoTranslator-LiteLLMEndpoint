@@ -8,11 +8,17 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace LiteLLM
 {
-    class AIConfig
+    public class AIConfig
     {
         public string SystemPrompt { get; set; } = string.Empty;
         public string GlossaryPrompt { get; set; } = string.Empty;
         public List<GlossaryLine> GlossaryLines { get; set; } = new List<GlossaryLine>();
+    }
+
+    public class ModelConfig
+    {
+        public string Model { get; set; } = string.Empty;
+        public Dictionary<string, object> ModelParams { get; set; } = new Dictionary<string, object>();
     }
 
     public class GlossaryLine
@@ -38,7 +44,8 @@ namespace LiteLLM
 
     public static class Configuration
     {
-        private static readonly AIConfig config = new AIConfig();
+        public static readonly AIConfig config = new AIConfig();
+        public static readonly ModelConfig modelConfig = new ModelConfig();
 
         public static string CalculateConfigFolder(string translatorDirectoryInput = null)
         {
@@ -91,6 +98,16 @@ namespace LiteLLM
                 .WithNamingConvention(new CamelCaseNamingConvention())
                 .Build();
             config.GlossaryLines = yamlDeserializer.Deserialize<List<GlossaryLine>>(File.ReadAllText($"{configFolder}/Glossary.yaml", Encoding.UTF8));
+        }
+
+        public static void LoadModelConfig(string modelName, params KeyValuePair<string, object>[] modelParams)
+        {
+            modelConfig.Model = modelName;
+            foreach (var kvp in modelParams)
+            {
+                modelConfig.ModelParams[kvp.Key] = kvp.Value;
+            }
+
         }
     }
 }
