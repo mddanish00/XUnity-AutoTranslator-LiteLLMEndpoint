@@ -88,7 +88,16 @@ namespace LiteLLM
 
         public override void OnCreateRequest(IHttpRequestCreationContext context)
         {
-            var requestData = Factory.GetRequestData(context.UntranslatedText);
+            var rawText = context.UntranslatedText;
+            foreach (var glossaryLine in Configuration.config.GlossaryLines)
+            {
+                if (glossaryLine.SubstituteBeforeTranslate && rawText.Contains(glossaryLine.Raw))
+                {
+                    rawText = rawText.Replace(glossaryLine.Raw, glossaryLine.Result);
+                }
+            }
+
+            var requestData = Factory.GetRequestData(rawText);
             var request = new XUnityWebRequest("POST", $"http://127.0.0.1:{this.ServerPort}/", requestData);
             request.Headers[HttpRequestHeader.Authorization] = $"Bearer {this.ApiKey}";
             request.Headers[HttpRequestHeader.ContentType] = "application/json";

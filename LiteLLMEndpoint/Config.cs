@@ -27,6 +27,7 @@ namespace LiteLLM
         public string Result { get; set; } = string.Empty;
         public string Transliteration { get; set; } = string.Empty;
         public string Context { get; set; } = string.Empty;
+        public bool SubstituteBeforeTranslate { get; set; } = false;
         public bool CheckForHallucination { get; set; } = true;
         public bool CheckForMistranslation { get; set; } = true;
 
