@@ -101,7 +101,7 @@ namespace LiteLLM
             }
 
             var requestData = Factory.GetRequestData(rawText);
-            var request = new XUnityWebRequest("POST", $"http://localhost:{this.ServerPort}/v1/chat/completions", requestData);
+            var request = new XUnityWebRequest("POST", $"http://127.0.0.1:{this.ServerPort}/v1/chat/completions", requestData);
             request.Headers[HttpRequestHeader.Authorization] = $"Bearer {this.ApiKey}";
             request.Headers[HttpRequestHeader.ContentType] = "application/json";
 
@@ -200,6 +200,11 @@ namespace LiteLLM
 
         public override IEnumerator OnBeforeTranslate(IHttpTranslationContext context)
         {
+            if (this.UseExternalServer)
+            {
+                yield break;
+            }
+            
             if (this.isStarted && this.process.HasExited)
             {
                 this.isStarted = false;
