@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
+using SimpleJSON;
 
 namespace LiteLLM
 {
@@ -85,8 +84,8 @@ namespace LiteLLM
                 throw new Exception($"Missing System Prompt File: {configFolder}/SystemPrompt.txt");
             if (!File.Exists($"{configFolder}/GlossaryPrompt.txt"))
                 throw new Exception($"Missing Glossary Prompt File: {configFolder}/GlossaryPrompt.txt");
-            if (!File.Exists($"{configFolder}/Glossary.yaml"))
-                throw new Exception($"Missing Glossary File: {configFolder}/Glossary.yaml");
+            if (!File.Exists($"{configFolder}/Glossary.json"))
+                throw new Exception($"Missing Glossary File: {configFolder}/Glossary.json");
 
             config.SystemPrompt = File.ReadAllText($"{configFolder}/SystemPrompt.txt", Encoding.UTF8);
             config.GlossaryPrompt = File.ReadAllText($"{configFolder}/GlossaryPrompt.txt", Encoding.UTF8);
@@ -94,11 +93,24 @@ namespace LiteLLM
             if (string.IsNullOrEmpty(config.GlossaryPrompt))
                 config.GlossaryPrompt = "### Glossary for Consistent Translations\r\nPrioritise and use the translation when an exact match with the original text is found.\r\n## Terms";
 
-            // Load Glossary file from yaml
-            var yamlDeserializer = new DeserializerBuilder()
-                .WithNamingConvention(new CamelCaseNamingConvention())
-                .Build();
-            config.GlossaryLines = yamlDeserializer.Deserialize<List<GlossaryLine>>(File.ReadAllText($"{configFolder}/Glossary.yaml", Encoding.UTF8));
+            // Load Glossary file from json
+            var glossaryJson = File.ReadAllText($"{configFolder}/Glossary.json", Encoding.UTF8);
+            var glossaryArray = JSON.Parse(glossaryJson).AsArray;
+            config.GlossaryLines = new List<GlossaryLine>();
+            foreach (JSONNode item in glossaryArray)
+            {
+                var glossaryLine = new GlossaryLine
+                {
+                    Raw = item["raw"],
+                    Result = item["result"],
+                    Transliteration = item["transliteration"],
+                    Context = item["context"],
+                    SubstituteBeforeTranslate = item["substituteBeforeTranslate"].AsBool,
+                    CheckForHallucination = item["checkForHallucination"].AsBool,
+                    CheckForMistranslation = item["checkForMistranslation"].AsBool
+                };
+                config.GlossaryLines.Add(glossaryLine);
+            }
         }
 
         public static void LoadModelConfig(string modelName, params KeyValuePair<string, object>[] modelParams)

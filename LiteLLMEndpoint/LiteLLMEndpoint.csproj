@@ -53,8 +53,4 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup>
-		<PackageReference Include="YamlDotNet" Version="5.0.0" />
-	</ItemGroup>
-
 </Project>
