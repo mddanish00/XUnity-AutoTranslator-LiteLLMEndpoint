@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using SimpleJSON;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints;
@@ -25,7 +26,7 @@ namespace LiteLLM
 
         private string ServerPort { get; set; }
         private string BinaryPath { get; set; }
-        private List<string> ExtraArguments { get; set; }
+        private string[] ExtraArguments { get; set; }
         private string ConfigPath { get; set; }
         private string ApiKey { get; set; }
         private string ModelName { get; set; }
@@ -41,7 +42,7 @@ namespace LiteLLM
             // Config
             this.ServerPort = context.GetOrCreateSetting("LiteLLM", "ServerPort", "4000");
             this.BinaryPath = context.GetOrCreateSetting("LiteLLM", "BinaryPath", "");
-            this.ExtraArguments = context.GetOrCreateSetting("LiteLLM", "ExtraArguments", new List<string>());
+            this.ExtraArguments = context.GetOrCreateSetting<string[]>("LiteLLM", "ExtraArguments", new string[0]);
             this.ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
             this.ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
             this.ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
@@ -49,7 +50,7 @@ namespace LiteLLM
             this.ModelTopK = context.GetOrCreateSetting("LiteLLM", "TopK", 0.9f);
             this.ModelFrequencyPenalty = context.GetOrCreateSetting("LiteLLM", "FrequencyPenalty", 0f);
             this.ModelPresencePenalty = context.GetOrCreateSetting("LiteLLM", "PresencePenalty", 0f);
-            this.UseExternalServer = context.GetOrCreateSetting("LiteLLM", "UseExternalServer", false); 
+            this.UseExternalServer = context.GetOrCreateSetting("LiteLLM", "UseExternalServer", false);
             this.LogServerMessages = context.GetOrCreateSetting("LiteLLM", "LogServerMessages", false);
 
             // Remove artificial delays
@@ -125,14 +126,14 @@ namespace LiteLLM
             {
                 XuaLogger.AutoTranslator.Info($"Running LiteLLM:\n\tBinaryPath: {this.BinaryPath}");
 
-                List<string> argumentsList = new List<string>()
+                string[] argumentsList = new string[]
                 {
                     "--port",
                     this.ServerPort,
                     "--config",
                     this.ConfigPath
                 };
-                argumentsList.AddRange(this.ExtraArguments);
+                argumentsList = argumentsList.Concat(this.ExtraArguments).ToArray();
 
                 this.process = new Process();
                 this.process.StartInfo = new ProcessStartInfo()
