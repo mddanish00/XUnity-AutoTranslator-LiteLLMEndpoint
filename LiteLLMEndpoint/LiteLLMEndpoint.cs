@@ -42,7 +42,7 @@ namespace LiteLLM
             // Config
             this.ServerPort = context.GetOrCreateSetting("LiteLLM", "ServerPort", "4000");
             this.BinaryPath = context.GetOrCreateSetting("LiteLLM", "BinaryPath", "");
-            this.ExtraArguments = context.GetOrCreateSetting<string[]>("LiteLLM", "ExtraArguments", new string[0]);
+            this.ExtraArguments = Factory.GetIniArray(context.GetOrCreateSetting("LiteLLM", "ExtraArguments", ""));
             this.ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
             this.ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
             this.ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
@@ -133,7 +133,15 @@ namespace LiteLLM
                     "--config",
                     this.ConfigPath
                 };
-                argumentsList = argumentsList.Concat(this.ExtraArguments).ToArray();
+
+                // Flatten the ExtraArguments array and split by '=' to handle key-value pairs
+                var processExtraArguments = this.ExtraArguments.SelectMany(arg =>
+                {
+                    var splitArr = arg.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
+                    splitArr[0] = $"--{splitArr[0]}"; // Prefix with '--'
+                    return splitArr;
+                }).ToArray();
+                argumentsList = argumentsList.Concat(processExtraArguments).ToArray();
 
                 this.process = new Process();
                 this.process.StartInfo = new ProcessStartInfo()

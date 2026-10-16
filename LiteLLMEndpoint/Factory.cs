@@ -90,5 +90,24 @@ namespace LiteLLM
 
             return result.Trim();
         }
+
+        // Example -> WhateverArray=reload;request_timeout=30;run_gunicorn;num_workers=4
+        public static string[] GetIniArray(string iniString)
+        {
+            if (string.IsNullOrEmpty(iniString))
+                return new string[0];
+
+            var lines = iniString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var result = new List<string>();
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                if (!string.IsNullOrEmpty(trimmedLine))
+                    result.Add(trimmedLine);
+            }
+
+            return result.ToArray();
+        }
     }
 }
