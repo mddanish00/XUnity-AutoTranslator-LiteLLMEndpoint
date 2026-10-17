@@ -36,46 +36,46 @@ namespace LiteLLM
         public override void Initialize(IInitializationContext context)
         {
             // Config
-            this.ServerPort = context.GetOrCreateSetting("LiteLLM", "ServerPort", "4000");
-            this.BinaryPath = context.GetOrCreateSetting("LiteLLM", "BinaryPath", "");
-            this.ExtraArguments = Factory.GetIniArray(context.GetOrCreateSetting("LiteLLM", "ExtraArguments", ""));
-            this.ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
-            this.ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
-            this.ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
-            this.ModelParams = Factory.GetIniArray(context.GetOrCreateSetting("LiteLLM", "ModelParams", "temperature=0.2;top_p=0.9;frequency_penalty=0;presence_penalty=0"));
-            this.UseExternalServer = context.GetOrCreateSetting("LiteLLM", "UseExternalServer", false);
-            this.LogServerMessages = context.GetOrCreateSetting("LiteLLM", "LogServerMessages", false);
+            ServerPort = context.GetOrCreateSetting("LiteLLM", "ServerPort", "4000");
+            BinaryPath = context.GetOrCreateSetting("LiteLLM", "BinaryPath", "");
+            ExtraArguments = Factory.GetIniArray(context.GetOrCreateSetting("LiteLLM", "ExtraArguments", ""));
+            ConfigPath = context.GetOrCreateSetting("LiteLLM", "ConfigPath", "");
+            ApiKey = context.GetOrCreateSetting("LiteLLM", "ApiKey", "");
+            ModelName = context.GetOrCreateSetting("LiteLLM", "ModelName", "");
+            ModelParams = Factory.GetIniArray(context.GetOrCreateSetting("LiteLLM", "ModelParams", "temperature=0.2;top_p=0.9;frequency_penalty=0;presence_penalty=0"));
+            UseExternalServer = context.GetOrCreateSetting("LiteLLM", "UseExternalServer", false);
+            LogServerMessages = context.GetOrCreateSetting("LiteLLM", "LogServerMessages", false);
 
             // Remove artificial delays
             context.SetTranslationDelay(0.1f);
             context.DisableSpamChecks();
 
-            if ((string.IsNullOrEmpty(this.BinaryPath) || string.IsNullOrEmpty(this.ConfigPath)) && !this.UseExternalServer)
+            if ((string.IsNullOrEmpty(BinaryPath) || string.IsNullOrEmpty(ConfigPath)) && !UseExternalServer)
             {
                 throw new Exception($"LiteLLMEndpoint: BinaryPath or ConfigPath is not set. Please configure them in the settings.");
             }
 
-            if (string.IsNullOrEmpty(this.ApiKey))
+            if (string.IsNullOrEmpty(ApiKey))
             {
                 throw new Exception($"LiteLLMEndpoint: ApiKey is not set. Please configure your Master Key or Virtual Key in the settings.");
             }
 
-            if (string.IsNullOrEmpty(this.ModelName))
+            if (string.IsNullOrEmpty(ModelName))
             {
                 throw new Exception($"LiteLLMEndpoint: ModelName is not set. Please configure your model name in the settings.");
             }
 
             var configuredEndpoint = context.GetOrCreateSetting<string>("Service", "Endpoint");
             // Only start the process if this endpoint is the configured one
-            if (configuredEndpoint == this.Id && !this.UseExternalServer)
+            if (configuredEndpoint == Id && !UseExternalServer)
             {
-                this.StartProcess();
+                StartProcess();
             }
 
             // Load configuration
             var configFolderPath = $"{Configuration.CalculateConfigFolder(context.TranslatorDirectory)}/LiteLLM";
             Configuration.LoadConfiguration(configFolderPath);
-            Configuration.LoadModelConfig(this.ModelName, this.ModelParams);
+            Configuration.LoadModelConfig(ModelName, ModelParams);
         }
 
         public override void OnCreateRequest(IHttpRequestCreationContext context)
@@ -90,8 +90,8 @@ namespace LiteLLM
             }
 
             var requestData = Factory.GetRequestData(rawText);
-            var request = new XUnityWebRequest("POST", $"http://127.0.0.1:{this.ServerPort}/v1/chat/completions", requestData);
-            request.Headers[HttpRequestHeader.Authorization] = $"Bearer {this.ApiKey}";
+            var request = new XUnityWebRequest("POST", $"http://127.0.0.1:{ServerPort}/v1/chat/completions", requestData);
+            request.Headers[HttpRequestHeader.Authorization] = $"Bearer {ApiKey}";
             request.Headers[HttpRequestHeader.ContentType] = "application/json";
 
             context.Complete(request);
@@ -111,20 +111,20 @@ namespace LiteLLM
 
         private void StartProcess()
         {
-            if (this.process == null || this.process.HasExited)
+            if (process == null || process.HasExited)
             {
-                XuaLogger.AutoTranslator.Info($"Running LiteLLM:\n\tBinaryPath: {this.BinaryPath}");
+                XuaLogger.AutoTranslator.Info($"Running LiteLLM:\n\tBinaryPath: {BinaryPath}");
 
                 string[] argumentsList = new string[]
                 {
                     "--port",
-                    this.ServerPort,
+                    ServerPort,
                     "--config",
-                    this.ConfigPath
+                    ConfigPath
                 };
 
                 // Flatten the ExtraArguments array and split by '=' to handle key-value pairs
-                var processExtraArguments = this.ExtraArguments.SelectMany(arg =>
+                var processExtraArguments = ExtraArguments.SelectMany(arg =>
                 {
                     var splitArr = arg.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
                     splitArr[0] = $"--{splitArr[0]}"; // Prefix with '--'
@@ -132,49 +132,51 @@ namespace LiteLLM
                 }).ToArray();
                 argumentsList = argumentsList.Concat(processExtraArguments).ToArray();
 
-                this.process = new Process();
-                this.process.StartInfo = new ProcessStartInfo()
+                process = new Process
                 {
-                    FileName = this.BinaryPath,
-                    Arguments = string.Join(" ", argumentsList.ToArray()),
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardInput = true,
-                    CreateNoWindow = true,
+                    StartInfo = new ProcessStartInfo()
+                    {
+                        FileName = BinaryPath,
+                        Arguments = string.Join(" ", argumentsList.ToArray()),
+                        UseShellExecute = false,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardInput = true,
+                        CreateNoWindow = true,
+                    }
                 };
 
-                this.process.OutputDataReceived += this.ServerDataReceivedEventHandler;
-                this.process.ErrorDataReceived += this.ServerDataReceivedEventHandler;
+                process.OutputDataReceived += ServerDataReceivedEventHandler;
+                process.ErrorDataReceived += ServerDataReceivedEventHandler;
 
-                this.process.Start();
-                this.process.BeginErrorReadLine();
-                this.process.BeginOutputReadLine();
-                this.isStarted = true;
+                process.Start();
+                process.BeginErrorReadLine();
+                process.BeginOutputReadLine();
+                isStarted = true;
             }
         }
 
         public void Dispose()
         {
-            this.isDisposing = true;
-            if (this.process != null)
+            isDisposing = true;
+            if (process != null)
             {
-                this.process.Kill();
-                this.process.Dispose();
-                this.process = null;
+                process.Kill();
+                process.Dispose();
+                process = null;
             }
         }
 
         void ServerDataReceivedEventHandler(object sender, DataReceivedEventArgs args)
         {
-            if (this.LogServerMessages)
+            if (LogServerMessages)
             {
                 XuaLogger.AutoTranslator.Info(args.Data);
             }
 
-            if (!this.isReady && args.Data.Contains("INFO"))
+            if (!isReady && args.Data.Contains("INFO"))
             {
-                this.isReady = true;
+                isReady = true;
                 XuaLogger.AutoTranslator.Info("Application startup complete.");
             }
         }
@@ -189,7 +191,7 @@ namespace LiteLLM
 
             var elapsed = stopwatch.Elapsed.TotalSeconds;
 
-            if (this.LogServerMessages)
+            if (LogServerMessages)
             {
                 XuaLogger.AutoTranslator.Info($"Translate complete {elapsed}s");
             }
@@ -197,26 +199,26 @@ namespace LiteLLM
 
         public override IEnumerator OnBeforeTranslate(IHttpTranslationContext context)
         {
-            if (this.UseExternalServer)
+            if (UseExternalServer)
             {
                 yield break;
             }
 
-            if (this.isStarted && this.process.HasExited)
+            if (isStarted && process.HasExited)
             {
-                this.isStarted = false;
-                this.isReady = false;
+                isStarted = false;
+                isReady = false;
 
                 XuaLogger.AutoTranslator.Warn($"Translator server process exited unexpectedly [status {process.ExitCode}]");
             }
 
-            if (!this.isStarted && !this.isDisposing)
+            if (!isStarted && !isDisposing)
             {
                 XuaLogger.AutoTranslator.Warn($"Translator server process not running. Starting...");
-                this.StartProcess();
+                StartProcess();
             }
 
-            while (!this.isReady) yield return null;
+            while (!isReady) yield return null;
         }
 
     }
