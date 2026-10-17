@@ -113,14 +113,17 @@ namespace LiteLLM
             }
         }
 
-        public static void LoadModelConfig(string modelName, params KeyValuePair<string, object>[] modelParams)
+        public static void LoadModelConfig(string modelName, params string[] modelParams)
         {
             modelConfig.Model = modelName;
-            foreach (var kvp in modelParams)
+            foreach (var param in modelParams)
             {
-                modelConfig.ModelParams[kvp.Key] = kvp.Value;
+                var parts = param.Split('=');
+                if (parts.Length == 2)
+                {
+                    modelConfig.ModelParams[parts[0]] = parts[1];
+                }
             }
-
         }
     }
 }
