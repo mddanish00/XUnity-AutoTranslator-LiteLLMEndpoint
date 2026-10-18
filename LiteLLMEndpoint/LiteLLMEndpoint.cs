@@ -29,6 +29,7 @@ using System.Net;
 using SimpleJSON;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints.Http;
+using XUnity.AutoTranslator.Plugin.Core.Utilities;
 using XUnity.AutoTranslator.Plugin.Core.Web;
 using XUnity.Common.Logging;
 
@@ -104,12 +105,18 @@ namespace LiteLLM
         public override void OnCreateRequest(IHttpRequestCreationContext context)
         {
             var rawText = context.UntranslatedText;
+            var rawSubtitutedText = rawText;
             foreach (var glossaryLine in Configuration.config.GlossaryLines)
             {
                 if (glossaryLine.SubstituteBeforeTranslate && rawText.Contains(glossaryLine.Raw))
                 {
-                    rawText = rawText.Replace(glossaryLine.Raw, glossaryLine.Result);
+                    rawSubtitutedText = rawSubtitutedText.Replace(glossaryLine.Raw, glossaryLine.Result);
                 }
+            }
+            // If the substituted text is translatable (equal some untranslated), use the original raw text
+            if (!LanguageHelper.IsTranslatable(rawSubtitutedText))
+            {
+                rawText = rawSubtitutedText;
             }
 
             var requestData = Factory.GetRequestData(rawText);
