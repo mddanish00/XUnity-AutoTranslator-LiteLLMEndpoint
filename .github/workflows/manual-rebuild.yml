@@ -1,0 +1,26 @@
+on:
+  workflow_dispatch:
+    inputs:
+      repo_tag:
+        description: 'The tag of the repository to use'
+        required: true
+        type: string
+      xuat_version:
+        description: 'The version of XUAT to use for building the release without v'
+        required: true
+        type: string
+  repository_dispatch:
+    types: [manual-rebuild]
+
+name: Manual Rebuild
+
+permissions:
+  contents: write # To allow the reusable workflow to upload release assets
+
+jobs:
+  call-reusable-workflow:
+    uses: ./.github/workflows/build-and-upload-release.yml
+    with:
+      repo_tag: ${{ github.event.inputs.repo_tag || github.event.client_payload.repo_tag }}
+      xuat_version: ${{ github.event.inputs.xuat_version || github.event.client_payload.xuat_version }}
+    secrets: inherit

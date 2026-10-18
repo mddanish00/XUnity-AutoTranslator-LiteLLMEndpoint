@@ -1,0 +1,20 @@
+{
+  "packages": {
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false,
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "LiteLLMEndpoint/LiteLLMEndpoint.csproj",
+          "xpath": "/*/PropertyGroup/Version"
+        }
+      ]
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}

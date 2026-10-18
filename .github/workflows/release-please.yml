@@ -1,0 +1,52 @@
+on:
+  push:
+    branches:
+      - main
+
+name: release-please
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  get-xuat-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Required for gh release view
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      # This step requires the GitHub CLI to be installed on the runner.
+      # It is pre-installed on GitHub-hosted runners.
+      - name: Get latest XUAT version
+        id: get_version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          echo "version=$(gh release view --repo bbepis/XUnity.AutoTranslator --json tagName --jq .tagName | sed 's/v//')" >> $GITHUB_OUTPUT
+
+  build-release:
+    needs: [release-please, get-xuat-version]
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      contents: write # Required to pass permissions to the reusable workflow
+    uses: ./.github/workflows/build-and-upload-release.yml
+    with:
+      repo_tag: ${{ needs.release-please.outputs.tag_name }}
+      xuat_version: ${{ needs.get-xuat-version.outputs.version }}
+    secrets: inherit
