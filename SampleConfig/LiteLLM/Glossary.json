@@ -1,0 +1,28 @@
+[
+  {
+    "raw": "ぺコリーヌ",
+    "result": "Pecorine"
+  },
+  {
+    "raw": "幻境竜后",
+    "result": "Vision Empress"
+  },
+  {
+    "raw": "ユウキ",
+    "result": "Yuuki",
+    "substituteBeforeTranslate": true
+  },
+  {
+    "raw": "トゥインクルウィッシュ",
+    "result": "Twinkle Wish"
+  },
+  {
+    "raw": "美食殿",
+    "result": "Gourmet Guild"
+  },
+  {
+    "raw": "クリア",
+    "result": "Quria",
+    "context": "Name of a character. Female."
+  }
+]

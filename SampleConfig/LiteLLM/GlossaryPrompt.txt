@@ -1,0 +1,3 @@
+#Glossary for Consistent Translations
+Use glossary translations for exact matches. If the text is already translated except for an exact glossary match, replace only the matched text without changing the rest. Do not apply glossary entries to partial or approximate matches.
+## Terms
