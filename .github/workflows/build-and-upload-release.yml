@@ -55,20 +55,29 @@ jobs:
             Copy-Item -Path "Developer\*" -Destination "libs-il2cpp" -Recurse -Force
             Remove-Item -Path "Developer" -Recurse -Force
 
-      - name: Build and zip the DLLs
+      - name: Build the project
         run: |
           dotnet build -c Release -v n
-          
-          $tempDir35 = New-Item -ItemType Directory -Path "temp_zip_net35_staging" -Force
-          Copy-Item "LiteLLMEndpoint/bin/Release/net35/LiteLLM.dll" -Destination $tempDir35.FullName
-          Copy-Item "SampleConfig" -Destination $tempDir35.FullName -Recurse
-          Compress-Archive -Path "$($tempDir35.FullName)/*" -DestinationPath LiteLLMEndpoint-${{ inputs.repo_tag }}.zip
 
-          $tempDir60 = New-Item -ItemType Directory -Path "temp_zip_net60_staging" -Force
-          Copy-Item "LiteLLMEndpoint/bin/Release/net6.0/LiteLLM.dll" -Destination $tempDir60.FullName
-          Copy-Item "SampleConfig" -Destination $tempDir60.FullName -Recurse
-          Compress-Archive -Path "$($tempDir60.FullName)/*" -DestinationPath LiteLLMEndpoint-IL2CPP-${{ inputs.repo_tag }}.zip
-      
+      - name: Zip the DLLs
+        shell: python
+        run: |
+          import zipfile
+          from pathlib import Path
+
+          f35 = zipfile.ZipFile('LiteLLMEndpoint-${{ inputs.repo_tag }}.zip', 'w', zipfile.ZIP_DEFLATED)
+          f60 = zipfile.ZipFile('LiteLLMEndpoint-IL2CPP-${{ inputs.repo_tag }}.zip', 'w', zipfile.ZIP_DEFLATED)
+
+          f35.write('LiteLLMEndpoint/bin/Release/net35/LiteLLM.dll', arcname='LiteLLM.dll')
+          f60.write('LiteLLMEndpoint/bin/Release/net6.0/LiteLLM.dll', arcname='LiteLLM.dll')
+
+          # Add SampleConfig directory to both zip files
+          [f35.write(p, arcname=p.relative_to('SampleConfig')._str if False else p.relative_to(Path('SampleConfig').parent)) for p in Path('SampleConfig').rglob('*') if p.is_file()]
+          [f60.write(p, arcname=p.relative_to('SampleConfig')._str if False else p.relative_to(Path('SampleConfig').parent)) for p in Path('SampleConfig').rglob('*') if p.is_file()]
+
+          f35.close()
+          f60.close()
+
       - name: Upload the zipped DLLs as artifacts
         uses: actions/upload-artifact@v7
         with:
