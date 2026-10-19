@@ -22,7 +22,7 @@ jobs:
         shell: powershell
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.repo_tag }}
 
@@ -33,7 +33,7 @@ jobs:
 
       - name: Cache and download XUAT dependencies
         id: cache-xuat
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             XUnity.AutoTranslator-Developer-${{ inputs.xuat_version }}.zip
@@ -58,11 +58,19 @@ jobs:
       - name: Build and zip the DLLs
         run: |
           dotnet build -c Release -v n
-          Compress-Archive -Path LiteLLMEndpoint/bin/Release/net35/LiteLLM.dll,SampleConfig -DestinationPath LiteLLMEndpoint-${{ inputs.repo_tag }}.zip
-          Compress-Archive -Path LiteLLMEndpoint/bin/Release/net6.0/LiteLLM.dll,SampleConfig -DestinationPath LiteLLMEndpoint-IL2CPP-${{ inputs.repo_tag }}.zip
+          
+          $tempDir35 = New-Item -ItemType Directory -Path "temp_zip_net35_staging" -Force
+          Copy-Item "LiteLLMEndpoint/bin/Release/net35/LiteLLM.dll" -Destination $tempDir35.FullName
+          Copy-Item "SampleConfig" -Destination $tempDir35.FullName -Recurse
+          Compress-Archive -Path "$($tempDir35.FullName)/*" -DestinationPath LiteLLMEndpoint-${{ inputs.repo_tag }}.zip
+
+          $tempDir60 = New-Item -ItemType Directory -Path "temp_zip_net60_staging" -Force
+          Copy-Item "LiteLLMEndpoint/bin/Release/net6.0/LiteLLM.dll" -Destination $tempDir60.FullName
+          Copy-Item "SampleConfig" -Destination $tempDir60.FullName -Recurse
+          Compress-Archive -Path "$($tempDir60.FullName)/*" -DestinationPath LiteLLMEndpoint-IL2CPP-${{ inputs.repo_tag }}.zip
       
       - name: Upload the zipped DLLs as artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
           path: |
@@ -77,12 +85,12 @@ jobs:
       contents: write # To upload release assets and update the release
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: release-artifacts
           
       - name: Update release and upload assets
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const tag = '${{ inputs.repo_tag }}';
